@@ -279,4 +279,4 @@ test()
 ## Additional information
 
 #### My Discord: https://discord.gg/2x9juZp9VX
-#### NPM Module: coming soon
+#### NPM Module: https://www.npmjs.com/package/myanimelist-module
