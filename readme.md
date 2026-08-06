@@ -3,7 +3,7 @@
 This module is neither affiliated with nor endorsed by MyAnimeList.
 All data returned by this module is provided by MyAnimeList.
 
-[![version badge](https://img.shields.io/badge/Version-1.0.0-light_green)](https://img.shields.io/badge/Version-1.0.0-light_green)
+[![version badge](https://img.shields.io/badge/Version-1.0.2-light_green)](https://img.shields.io/badge/Version-1.0.0-light_green)
 
 ## Installation
 
@@ -18,7 +18,7 @@ Install myanimelist-module with npm
 ```javascript
 const { MyAnimeList } = require('myanimelist-module')
 const mal = new MyAnimeList({
-    client_id: `YOUR_MAL_CLIENT_ID`
+    client_id: `YOUR_MAL_CLIENT_ID` // Get it here: https://myanimelist.net/apiconfig
 })
 
 async function test() {
