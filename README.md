@@ -168,7 +168,7 @@ test()
 `updated_at`: string <date-time>
 
 
-## Anime only
+#### Anime only
 `media_type`: string
 - unknown
 - tv
@@ -220,7 +220,7 @@ test()
 
 `studios`: Array of objects
 
-## Manga only
+#### Manga only
 `media_type`: string
 - unknown
 - manga
