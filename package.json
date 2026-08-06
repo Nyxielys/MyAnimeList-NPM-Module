@@ -1,6 +1,6 @@
 {
   "name": "myanimelist-module",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,6 @@
     "email": "dev.nyxielys@gmail.com",
     "url": "https://github.com/Nyxielys"
   },
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs"
 }
