@@ -3,7 +3,7 @@
 This module is neither affiliated with nor endorsed by MyAnimeList.
 All data returned by this module is provided by MyAnimeList.
 
-[![version badge](https://img.shields.io/badge/Version-1.0.4-light_green)](https://img.shields.io/badge/Version-1.0.4-light_green)
+[![version badge](https://img.shields.io/badge/Version-1.0.5-light_green)](https://img.shields.io/badge/Version-1.0.5-light_green)
 
 ## Installation
 

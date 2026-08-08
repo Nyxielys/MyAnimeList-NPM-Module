@@ -1,17 +1,35 @@
 {
   "name": "myanimelist-module",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "myanimelist",
+    "myanimelist-api",
+    "mal",
+    "mal-api",
+    "anime",
+    "manga",
+    "wrapper",
+    "client"
+  ],
   "author": {
     "name": "Nyxielys",
     "email": "dev.nyxielys@gmail.com",
     "url": "https://github.com/Nyxielys"
   },
   "license": "MIT",
-  "type": "commonjs"
+  "type": "commonjs",
+
+  "homepage": "https://github.com/Nyxielys/MyAnimeList-NPM-Module#readme",
+  "bugs": {
+    "url": "https://github.com/Nyxielys/MyAnimeList-NPM-Module/issues"
+  },
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/Nyxielys/MyAnimeList-NPM-Module"
+  }
 }
