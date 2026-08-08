@@ -63,6 +63,13 @@ test()
 | `api_url`      | `string`  | **Required**. You must use any valid MyAnimeList API link. It also works with older responses via `response.datas.paging.next` and `response.datas.paging.previous`.|
 
 
+#### getMangaInfoByURL()
+
+| Parameter   | Type      | Description                       |
+| :---------- | :-------- | :-------------------------------- |
+| `api_url`      | `string`  | **Required**. You must use any valid MyAnimeList API link. It also works with older responses via `response.datas.paging.next` and `response.datas.paging.previous`.|
+
+
 #### getSpecificAnimeInfo()
 
 | Parameter   | Type      | Description                       |
