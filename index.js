@@ -127,6 +127,60 @@ new MyAnimeList({
         }
     }
 
+    async getAnimeInfoByURL(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) {
+            return {
+                success: false,
+                error: hasForgetParam.error
+            }
+        }
+
+        var url = settings?.api_url
+        if (!url) {
+            return {
+                success: false,
+                error: `Require api_url: getAnimeInfo({ api_url: string })`
+            }
+        }
+
+        if (!url.includes('api.myanimelist.net')) {
+            return {
+                success: false,
+                error: `Invalid URL.`
+            }
+        }
+
+        var data
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            })
+
+            if (!response.ok) {
+                return {
+                    success: false,
+                    error: `API Error: ${response.status}`
+                }
+            }
+
+            data = await response.json()
+        } catch (err) {
+            return {
+                success: false,
+                error: err
+            }
+        }
+
+        return {
+            success: true,
+            datas: data
+        }
+    }
+
     async getSpecificAnimeInfo(settings) {
         const hasForgetParam = await this.#checkIfHasParams('only_client_id')
         if (hasForgetParam.error) {
