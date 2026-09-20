@@ -3,7 +3,7 @@
 This module is neither affiliated with nor endorsed by MyAnimeList.
 All data returned by this module is provided by MyAnimeList.
 
-[![version badge](https://img.shields.io/badge/Version-1.0.5-light_green)](https://img.shields.io/badge/Version-1.0.5-light_green)
+[![version badge](https://img.shields.io/badge/Version-1.1.0-light_green)](https://img.shields.io/badge/Version-1.1.0-light_green)
 
 ## Installation
 
@@ -73,6 +73,7 @@ test()
 
 
 #### getAnimeInfoByID()
+
 | Parameter   | Type      | Description                       |
 | :---------- | :-------- | :-------------------------------- |
 | `id`      | `string`  | **Required**.                     |
@@ -131,6 +132,7 @@ test()
 
 
 #### getMangaInfoByID()
+
 | Parameter   | Type      | Description                       |
 | :---------- | :-------- | :-------------------------------- |
 | `id`      | `string`  | **Required**.                     |
@@ -147,6 +149,53 @@ test()
 | `limit` | `number` | Optional. Number of items in the response. (Maximum of 500) |
 | `offset` | `number` | Optional. Default : `0` |
 | `nsfw` | `boolean` | Optional. Default: `false` |
+
+
+#### getAllBoards()
+
+| Parameter | Type | Description |
+| :-------- | :--- | :---------- |
+| `categories` | `array` | Only four categories available: MyAnimeList, Anime & Manga, General, Archive |
+
+
+#### getBoardTopics()
+
+| Parameter | Type | Description |
+| :-------- | :--- | :---------- |
+| `limit` | `number` | Optional. Number of items in the response. (Maximum of 100) |
+| `offset` | `number` | Optional. Default: `0` |
+| `board_id` | `number` | Optional. [*] |
+| `subboard_id` | `number` | Optional. [*] |
+| `search` | `string` | Optional. [*] |
+| `topic_username` | `string` | Optional. [*] |
+| `board_id` | `string` | Optional. [*] |
+
+[*] At least one of these options must be provided.
+
+
+#### getBoardTopicsByURL()
+
+| Parameter | Type | Description |
+| :-------- | :--- | :---------- |
+| `api_url` | `string` | **Required**. You must use any valid MyAnimeList API link. It also works with older responses via response.datas.paging.next and response.datas.paging.previous. |
+
+
+#### getTopicDetails()
+
+| Parameter | Type | Description |
+| :-------- | :--- | :---------- |
+| `topic_id` | `number` | **Required**. |
+| `limit` | `number` | Optional. Number of items in the response. (Maximum of 100) |
+| `offset` | `number` | Optional. Default: `0` |
+
+
+#### getTopicDetailsByURL()
+
+| Parameter | Type | Description |
+| :-------- | :--- | :---------- |
+| `api_url` | `string` | **Required**. You must use any valid MyAnimeList API link. It also works with older responses via response.datas.paging.next and response.datas.paging.previous. |
+
+
 ## Available fields
 
 #### Global
