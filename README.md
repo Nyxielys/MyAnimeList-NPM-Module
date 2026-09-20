@@ -155,7 +155,7 @@ test()
 
 | Parameter | Type | Description |
 | :-------- | :--- | :---------- |
-| `categories` | `[array]` | Only four categories available: MyAnimeList, Anime & Manga, General, Archive |
+| `categories` | `[array]` | Only four categories available: `MyAnimeList`, `Anime & Manga`, `General`, `Archive` |
 
 
 #### getBoardTopics()
