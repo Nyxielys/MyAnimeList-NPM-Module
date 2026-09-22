@@ -817,6 +817,321 @@ new MyAnimeList({
         }
     }
 
+    async getAllBoards(settings) {
+        const validCategories = ["MyAnimeList", "Anime & Manga", "General", "Archive"];
+
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) {
+            return {
+                success: false,
+                error: hasForgetParam.error
+            }
+        }
+
+        var selectedCategory = settings?.categories
+        if (selectedCategory && selectedCategory?.length > 0) {
+            if (typeof (selectedCategory) != "object") {
+                return {
+                    success: false,
+                    error: 'The "categories" field must be a list: getAllBoards({ categories: array })'
+                }
+            }
+
+            for (let i = 0; i < selectedCategory?.length; i++) {
+                if (!validCategories.includes(selectedCategory[i])) {
+                    return {
+                        success: false,
+                        error: `Please use valid categories: ${validCategories.map(c => c).join(', ')}`
+                    }
+                }
+            }
+        }
+
+        const response = await fetch('https://api.myanimelist.net/v2/forum/boards', {
+            method: 'GET',
+            headers: {
+                'X-MAL-CLIENT-ID': this.client_id
+            }
+        })
+
+        const DATA = await response.json();
+        var requestedDatas = []
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: `API Error: ${response.status}`
+            }
+        }
+
+        if (selectedCategory && selectedCategory?.length > 0) {
+            for (let i = 0; i < DATA.categories.length; i++) {
+                if (selectedCategory.includes(DATA.categories[i].title)) {
+                    requestedDatas.push(DATA.categories[i])
+                }
+            }
+        } else {
+            requestedDatas = DATA.categories
+        }
+
+        return {
+            success: true,
+            datas: requestedDatas
+        }
+
+    }
+
+    async getBoardTopics(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) {
+            return {
+                success: false,
+                error: hasForgetParam.error
+            }
+        }
+
+        var boardId = settings?.board_id ?? null
+        if (boardId && isNaN(boardId)) {
+            return {
+                success: false,
+                error: `The "board_id" field must be a number: getBoardTopics({ board_id: number })`
+            }
+        }
+        if (boardId) boardId = `&board_id=${boardId}`
+        else boardId = ""
+
+        var subboard_id = settings?.subboard_id ?? null
+        if (subboard_id && isNaN(subboard_id)) {
+            return {
+                success: false,
+                error: `The "subboard_id" field must be a number: getBoardTopics({ subboard_id: number })`
+            }
+        }
+        if (subboard_id) subboard_id = `&subboard_id=${subboard_id}`
+        else subboard_id = ""
+
+        var limit = settings?.limit ?? 10
+        if (isNaN(limit) || limit > 100) {
+            return {
+                success: false,
+                error: `The "limit" field must be a number: getBoardTopics({ limit: number (must be <= 100) })`
+            }
+        }
+
+        var offset = settings?.offset ?? 0
+        if (isNaN(offset)) {
+            return {
+                success: false,
+                error: `The "offset" field must be a number: getBoardTopics({ offset: number })`
+            }
+        }
+
+        var search = settings?.search ?? null
+        if (search && typeof (search) != "string") {
+            return {
+                success: false,
+                error: `The "search" field must be a string: getBoardTopics({ search: string })`
+            }
+        }
+
+        if (search) search = `&q=${encodeURIComponent(search)}`
+        else search = ""
+
+        var topic_username = settings?.topic_username ?? null
+        if (topic_username && typeof (topic_username) != "string") {
+            return {
+                success: false,
+                error: `The "topic_username" field must be a string: getBoardTopics({ topic_username: string })`
+            }
+        }
+
+        if (topic_username) topic_username = `&topic_user_name=${encodeURIComponent(topic_username)}`
+        else topic_username = ""
+
+        var username = settings?.username ?? null
+        if (username && typeof (username) != "string") {
+            return {
+                success: false,
+                error: `The "username" field must be a string: getBoardTopics({ username: string })`
+            }
+        }
+
+        if (username) username = `&user_name=${encodeURIComponent(username)}`
+        else username = ""
+
+        if (boardId === "" && subboard_id === "" && search === "" & topic_username === "" && username === "") {
+            return {
+                success: false,
+                error: `Please define at least one search parameter from the following: board_id, subboard_id, search, topic_username, username`
+            }
+        }
+
+        const response = await fetch(`https://api.myanimelist.net/v2/forum/topics?limit=${limit}&offset=${offset}${boardId}${subboard_id}${search}${topic_username}${username}`, {
+            method: 'GET',
+            headers: {
+                'X-MAL-CLIENT-ID': this.client_id
+            }
+        })
+
+        const DATA = await response.json();
+        if (!response.ok) {
+            return {
+                success: false,
+                error: `API Error: ${response.status}`
+            }
+        }
+
+        return {
+            success: true,
+            datas: DATA
+        }
+
+    }
+
+    async getBoardTopicsByURL(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) {
+            return {
+                success: false,
+                error: hasForgetParam.error
+            }
+        }
+
+        const url = settings?.api_url ?? null;
+        if (!url) {
+            return {
+                success: false,
+                error: `Require api_url: getBoardTopicsByURL({ api_url: string })`
+            }
+        }
+
+        if (!url.includes('api.myanimelist.net/v2/forum/topics')) {
+            return {
+                success: false,
+                error: "Invalid URL."
+            }
+        }
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-MAL-CLIENT-ID': this.client_id
+            }
+        })
+        const DATA = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: `API Error: ${response.status}`
+            }
+        }
+
+        return {
+            success: true,
+            datas: DATA
+        }
+    }
+
+    async getTopicDetails(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) {
+            return {
+                success: false,
+                error: hasForgetParam.error
+            }
+        }
+
+        const topicID = settings?.topic_id ?? null;
+        if (!topicID || isNaN(topicID)) {
+            return {
+                success: false,
+                error: "Please provide the topic ID: getTopicDetails({ topic_id: number })"
+            }
+        }
+
+        var limit = settings?.limit ?? 10
+        if (isNaN(limit) || limit > 100) {
+            return {
+                success: false,
+                error: `The "limit" field must be a number: getTopicDetails({ limit: number (must be <= 100) })`
+            }
+        }
+
+        var offset = settings?.offset ?? 0
+        if (isNaN(offset)) {
+            return {
+                success: false,
+                error: `The "offset" field must be a number: getTopicDetails({ offset: number })`
+            }
+        }
+
+        const response = await fetch(`https://api.myanimelist.net/v2/forum/topic/${topicID}?limit=${limit}&offset=${offset}`, {
+            method: 'GET',
+            headers: {
+                'X-MAL-CLIENT-ID': this.client_id
+            }
+        })
+        const DATA = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: `API Error: ${response.status}`
+            }
+        }
+
+        return {
+            success: true,
+            datas: DATA
+        }
+    }
+
+    async getTopicDetailsByURL(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) {
+            return {
+                success: false,
+                error: hasForgetParam.error
+            }
+        }
+
+        const url = settings?.api_url ?? null;
+        if (!url) {
+            return {
+                success: false,
+                error: `Require api_url: getTopicDetailsByURL({ api_url: string })`
+            }
+        }
+
+        if (!url.includes('api.myanimelist.net/v2/forum/topic/')) {
+            return {
+                success: false,
+                error: "Invalid URL."
+            }
+        }
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-MAL-CLIENT-ID': this.client_id
+            }
+        })
+        const DATA = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: `API Error: ${response.status}`
+            }
+        }
+
+        return {
+            success: true,
+            datas: DATA
+        }
+    }
+
 }
 
 module.exports = {
