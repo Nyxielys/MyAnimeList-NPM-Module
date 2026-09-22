@@ -225,7 +225,7 @@ test()
 | gray | This work may be not safe for work |
 | black | This work is not safe for work |
 
-`Genres`: Array of objects
+`genres`: Array of objects
 
 `created_at` : string <date-time>
 
