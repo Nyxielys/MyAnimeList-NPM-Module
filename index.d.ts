@@ -174,6 +174,13 @@ export interface TopicDetailsURLOptions {
     api_url: string;
 };
 
+export class MalError extends Error {
+    status: number | null;
+    details: any;
+
+    constructor(message: string, status?: number | null, details?: any);
+};
+
 export class MyAnimeList {
     constructor(options: MALOptions);
 
