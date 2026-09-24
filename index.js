@@ -783,6 +783,8 @@ new MyAnimeList({
         const tokens = this.#request(url, options);
         return tokens;
     }
+
+    // Il faut ajouter les fonctions pour utiliser le token
 }
 
 module.exports = {
