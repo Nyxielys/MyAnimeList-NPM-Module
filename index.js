@@ -1,6 +1,4 @@
-const crypto = require("node:crypto");
 const { MalError } = require("./internal_systems/MalError.js");
-const { URLSearchParams } = require("node:url");
 
 class MyAnimeList {
     constructor(datas) {
@@ -686,105 +684,6 @@ new MyAnimeList({
 
         return data;
     }
-
-    // OAuth2
-
-    async generatePKCE() {
-        const verifier = await crypto.randomBytes(64).toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-
-        return { verifier, challenge: verifier };
-    }
-
-    async generateAuthURL(settings) {
-        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
-        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
-
-        const challenge = settings?.challenge ?? null
-        if (!challenge || typeof (challenge) != "string") throw new MalError("Please provide the challenge: generateAuthURL({ challenge: string })");
-
-        const redirectURI = settings?.redirect_uri ?? null
-        if (!redirectURI || typeof (redirectURI) != "string") throw new MalError("Please provide the redirect URI: generateAuthURL({ redirect_uri: string })");
-
-        const parameter = new URLSearchParams({
-            response_type: 'code',
-            client_id: this.client_id,
-            code_challenge: challenge,
-            code_challenge_method: 'plain',
-            redirect_uri: redirectURI
-        });
-
-        const url = `https://myanimelist.net/v1/oauth2/authorize?${parameter.toString()}`;
-        return url
-    }
-
-    async authorize(settings) {
-        const hasForgetParam = await this.#checkIfHasParams('all')
-        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
-
-        const code = settings?.code ?? null;
-        if (!code || typeof (code) != "string") throw new MalError("Please provide the code: authorize({ code: string })");
-
-        const verifier = settings?.verifier ?? null;
-        if (!verifier || typeof (verifier) != "string") throw new MalError("Please provide the verifier: authorize({ verifier: string })");
-
-        const redirectURI = settings?.redirect_uri ?? null;
-        if (!redirectURI || typeof (redirectURI) != "string") throw new MalError("Please provide the redirect URI: authorize({ redirect_uri: string })");
-
-        const parameter = new URLSearchParams({
-            client_id: this.client_id,
-            client_secret: this.client_secret,
-            grant_type: "authorization_code",
-            code: code,
-            redirect_uri: redirectURI,
-            code_verifier: verifier
-        });
-
-        const url = 'https://myanimelist.net/v1/oauth2/token'
-        const options = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: parameter.toString()
-        }
-
-        const tokens = await this.#request(url, options);
-        return tokens;
-    }
-
-    async refreshToken(settings) {
-        const hasForgetParam = await this.#checkIfHasParams('all')
-        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
-
-        const refreshToken = settings?.refresh_token ?? null;
-        if (!refreshToken || typeof(refreshToken) != "string") {
-            throw new MalError("Please provide the refresh token: refreshToken({ refresh_token: string })");
-        }
-
-        const parameter = new URLSearchParams({
-            client_id: this.client_id,
-            client_secret: this.client_secret,
-            grant_type: "refresh_token",
-            refresh_token: refreshToken
-        });
-
-        const url = "https://myanimelist.net/v1/oauth2/token";
-        const options = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: parameter.toString()
-        };
-
-        const tokens = this.#request(url, options);
-        return tokens;
-    }
-
-    // Il faut ajouter les fonctions pour utiliser le token
 }
 
 module.exports = {

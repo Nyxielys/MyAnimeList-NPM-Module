@@ -3,7 +3,7 @@
 This module is neither affiliated with nor endorsed by MyAnimeList.
 All data returned by this module is provided by MyAnimeList.
 
-[![version badge](https://img.shields.io/badge/Version-1.1.1-light_green)](https://img.shields.io/badge/Version-1.1.1-light_green)
+[![version badge](https://img.shields.io/badge/Version-1.1.2-light_green)](https://img.shields.io/badge/Version-1.1.2-light_green)
 
 ## Installation
 
@@ -16,23 +16,28 @@ Install myanimelist-module with npm
 ## Usage/Examples
 
 ```javascript
-const { MyAnimeList } = require('myanimelist-module')
+const { MyAnimeList, MalError } = require('myanimelist-module')
 const mal = new MyAnimeList({
     client_id: `YOUR_MAL_CLIENT_ID` // Get it here: https://myanimelist.net/apiconfig
 })
 
 async function test() {
-    const response = await mal.getAnimeInfo({
-        name: "Anime name"
-    })
-    if(response.error) {
-        console.error(response.error)
-    } else {
-        console.log(response.datas)
+    try {
+        const response = await mal.getAnimeInfo({
+            name: "Anime name"
+        })
+
+        console.log(response) // "response" is generally in the form: { data: [], paging: {} }
+    } catch (error) {
+        if (error instanceof MalError) {
+            throw error
+        } else {
+            console.log(`Unexpected error:\n${error}`)
+        }
     }
 }
 
-test()
+test();
 ```
 
 
