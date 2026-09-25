@@ -2,6 +2,11 @@ const crypto = require("node:crypto");
 const { MalError } = require("./internal_systems/MalError.js");
 const { URLSearchParams } = require("node:url");
 
+const availableGlobalFields = ["id", "title", "main_picture", "alternative_titles", "start_date", "end_date", "synopsis", "mean", "rank", "popularity", "num_list_users", "nsfw", "genres", "created_at", "updated_at", "media_type", "status", "my_list_status", "num_scoring_users"];
+const availableAnimeFields = ["num_episodes", "start_season", "broadcast", "source", "average_episode_duration", "rating", "studios"];
+const availableMangaFields = ["num_volumes", "num_chapters", "authors"];
+const availableUserProfileFields = ["id", "name", "picture", "gender", "birthday", "location", "joined_at", "anime_statistics", "time_zone", "is_supporter"];
+
 class MyAnimeList {
     constructor(datas) {
         this.client_id = datas.client_id;
@@ -90,25 +95,61 @@ new MyAnimeList({
         }
     }
 
+    async #checkParam(funct, parameter, value, minValue, maxValue) {
+        if (value >= minValue && (value <= maxValue || maxValue === null) && typeof (value) === "number") {
+            return;
+        } else {
+            throw new MalError(`"${parameter}" must be a number between ${minValue} and ${maxValue ?? "infinite"}: ${funct}({ ${parameter}: number })`);
+        }
+    }
+
+    async #checkFields(funct, type, parameter, tab) {
+        if (!Array.isArray(tab) && tab !== null) throw new MalError(`The "fields" field must be an array: ${funct}({ fields: array })`);
+
+        let availableFields;
+        if (type === "anime") {
+            availableFields = availableGlobalFields.concat(availableAnimeFields);
+        } else if (type === "manga") {
+            availableFields = availableGlobalFields.concat(availableMangaFields);
+        } else if (type === "user") {
+            availableFields = availableUserProfileFields;
+        }
+
+        if (tab !== null && tab.length > 0) {
+            for (let i = 0; i < tab.length; i++) {
+                if (!availableFields.includes(tab[i])) {
+                    throw new MalError(`${tab[i]} isn't an available field. Here are valid fields: ${availableFields.join(', ')}`);
+                }
+            }
+
+            tab = `&${parameter}=${tab.join(',')}`
+        } else {
+            tab = ''
+        }
+
+        return tab;
+    }
+
     async getAnimeInfo(settings) {
         const hasForgetParam = await this.#checkIfHasParams('only_client_id');
         if (hasForgetParam.error) {
             throw new MalError(hasForgetParam.error)
         }
 
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getAnimeInfo({ token: string })`);
+
         var anime_name = settings?.name
         if (!anime_name || typeof anime_name != "string") throw new MalError("Require name: getAnimeInfo({ name: string })");
 
-        var offset = settings?.offset ?? ''
-        if (offset != '' && isNaN(offset)) throw new MalError(`The "offset" field must be a valid positive number.`);
-        if (offset != '') offset = `&offset=${offset}`
+        var offset = settings?.offset ?? 0;
+        await this.#checkParam("getAnimeInfo", "offset", offset, 0, null);
 
-        var limit = settings?.limit ?? ''
-        if (limit != '' && (isNaN(limit) || limit > 500)) throw new MalError(`The "limit" field must be a valid positive number (<=500).`);
-        if (limit != '') limit = `&limit=${limit}`
+        var limit = settings?.limit ?? 10;
+        await this.#checkParam("getAnimeInfo", "limit", limit, 1, 100);
 
-        var fields = settings?.fields ?? []
-        if (fields.length > 0) fields = `&fields=${fields.map(field => field).join(',')}`
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getAnimeInfo", "anime", "fields", fields);
 
         var nsfw = settings?.nsfw ?? false
         if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
@@ -118,11 +159,21 @@ new MyAnimeList({
             editedAnimeName = editedAnimeName.split(" ").slice(0, 8).join(" ")
         }
 
-        const url = `https://api.myanimelist.net/v2/anime?q=${encodeURIComponent(editedAnimeName)}${offset}${limit}${fields}${nsfw}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        const url = `https://api.myanimelist.net/v2/anime?q=${encodeURIComponent(editedAnimeName)}&offset=${offset}&limit=${limit}${fields}${nsfw}`
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
@@ -133,18 +184,31 @@ new MyAnimeList({
 
     async getAnimeInfoByURL(settings) {
         const hasForgetParam = await this.#checkIfHasParams('only_client_id')
-        if (hasForgetParam.error) throw new MalError(hasForgetParam.error)
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
 
         var url = settings?.api_url
         if (!url) throw new MalError("Require api_url: getAnimeInfoByURL({ api_url: string })");
         if (!url.includes('api.myanimelist.net/v2/anime')) throw new MalError("Invalid URL.");
 
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getAnimeInfoByURL({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
             }
-        };
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
 
         const data = await this.#request(url, options);
         return data;
@@ -171,10 +235,24 @@ new MyAnimeList({
         }
 
         const url = `https://api.myanimelist.net/v2/anime?q=${encodeURIComponent(editedAnimeName)}${fields}${nsfw}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getSpecificAnimeInfo({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
@@ -213,6 +291,8 @@ new MyAnimeList({
     }
 
     async getAnimeInfoByID(settings) {
+        const availableFields = ["id", "title", "main_picture", "alternative_titles", "start_date", "end_date", "synopsis", "mean", "rank", "popularity", "num_list_users", "nsfw", "genres", "created_at", "updated_at", "media_type", "status", "my_list_status", "num_episodes", "start_season", "broadcast", "source", "average_episode_duration", "rating", "studios"];
+
         const hasForgetParam = await this.#checkIfHasParams('only_client_id')
         if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
 
@@ -220,27 +300,50 @@ new MyAnimeList({
         if (!anime_id) throw new MalError(`Require id (number >0): getAnimeInfoByID({ id: number })`)
         if (isNaN(anime_id)) throw new MalError(`The "id" field must be a valid positive number.`);
 
-        var fields = settings?.fields ?? []
-        if (!Array.isArray(fields)) throw new MalError(`The "fields" field must be a list: getAnimeInfoByID({ fields: [array] })`);
-        if (fields.length > 0) fields = `&fields=${fields.map(field => field).join(',')}`
+        var fields = settings?.fields ?? null;
+        if (fields !== null && !Array.isArray(fields)) throw new MalError(`"fields" must be an array: getAnimeInfoByID({ fields: array })`);
+        if (fields !== null) {
+            for (let i = 0; i < fields.length; i++) {
+                if (!availableFields.includes(fields[i])) {
+                    throw new MalError(`Please provide valid fields: ${availableFields.join(', ')}`);
+                }
+            }
+            fields = `&fields=${fields.join(',')}`
+        } else {
+            fields = ""
+        }
 
         var nsfw = settings?.nsfw ?? false
         if (nsfw === true) { nsfw = `?nsfw=true` } else { nsfw = `?nsfw=false` }
 
         const url = `https://api.myanimelist.net/v2/anime/${anime_id}${nsfw}${fields}`;
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
-            }
-        };
-        const data = await this.#request(url, options);
 
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getAnimeInfoByID({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
+
+        const data = await this.#request(url, options);
         return data;
     }
 
     async getAnimeRanking(settings) {
-        const available_ranking_type = ["all", "airing", "upcoming", "tv", "ova", "movie", "special", "bypopularity", "favorite"]
+        const available_ranking_type = ["all", "airing", "upcoming", "tv", "ova", "movie", "special", "bypopularity", "favorite"];
 
         const hasForgetParam = await this.#checkIfHasParams('only_client_id')
         if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
@@ -248,31 +351,41 @@ new MyAnimeList({
         var ranking_type = settings?.type ?? "all"
         if (!available_ranking_type.includes(ranking_type)) throw new MalError(`Please use a valid ranking type: ${available_ranking_type.map(f => f).join(', ')}`);
 
-        var fields = settings?.fields ?? [];
-        if (!Array.isArray(fields)) throw new MalError(`The "fields" field must be a list: getAnimeRanking({ fields: [array] })`);
-        if (fields.length > 0) fields = `&fields=${fields.map(field => field).join(',')}`
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getAnimeRanking", "anime", "fields", fields);
 
-        var limit = settings?.limit ?? ''
-        if (limit != '' && (isNaN(limit) || limit > 500)) throw new MalError(`The "limit" field must be a valid positive number (<=500).`)
-        if (limit != '') limit = `&limit=${limit}`
+        var limit = settings?.limit ?? 20
+        await this.#checkParam("getAnimeRanking", "limit", limit, 1, 500);
 
-        var offset = settings?.offset ?? ''
-        if (offset != '' && isNaN(offset) && limit.toString() != '0') throw new MalError(`The "offset" field must be a valid positive number.`)
-        if (offset != '') offset = `&offset=${offset}`
+        var offset = settings?.offset ?? 0
+        await this.#checkParam("getAnimeRanking", "offset", offset, 0, null);
 
         var nsfw = settings?.nsfw ?? false
         if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
 
-        const url = `https://api.myanimelist.net/v2/anime/ranking?ranking_type=${ranking_type}${fields}${limit}${offset}${nsfw}`;
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        const url = `https://api.myanimelist.net/v2/anime/ranking?ranking_type=${ranking_type}${fields}&limit=${limit}&offset=${offset}${nsfw}`;
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getAnimeRanking({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
             }
-        };
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
 
         const data = await this.#request(url, options);
-
         return data;
     }
 
@@ -310,27 +423,39 @@ new MyAnimeList({
         var year = settings?.year ?? await getYear()
         if (isNaN(year)) throw new MalError(`The "year" field must be a valid positive number.`);
 
-        var fields = settings?.fields ?? []
-        if (!Array.isArray(fields)) throw new MalError(`The "fields" field must be a list: getSeasonalAnime({ fields: [array] })`)
-        if (fields.length > 0) fields = `&fields=${fields.map(field => field).join(',')}`
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getSeasonalAnime", "anime", "fields", fields);
 
-        var limit = settings?.limit ?? ''
-        if (limit != '' && (isNaN(limit) || limit > 500)) throw new MalError(`The "limit" field must be a valid positive number (<=500).`);
-        if (limit != '') limit = `&limit=${limit}`
+        var limit = settings?.limit ?? 10
+        await this.#checkParam("getSeasonalAnime", "limit", limit, 1, 500);
 
         var offset = settings?.offset ?? 0
-        if (offset != '' && isNaN(offset) && limit.toString() != '0') throw new MalError(`The "offset" field must be a valid positive number.`);
+        await this.#checkParam("getSeasonalAnime", "offset", offset, 0, null);
 
         var nsfw = settings?.nsfw ?? false
         if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
 
-        const url = `https://api.myanimelist.net/v2/anime/season/${year}/${season}?offset=${offset}${limit}${fields}${nsfw}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        const url = `https://api.myanimelist.net/v2/anime/season/${year}/${season}?offset=${offset}&limit=${limit}${fields}${nsfw}`;
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getSeasonalAnime({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
             }
-        };
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
 
         const data = await this.#request(url, options);
 
@@ -338,43 +463,54 @@ new MyAnimeList({
     }
 
     async getMangaInfo(settings) {
+        const availableFields = []
+
         const hasForgetParam = await this.#checkIfHasParams('only_client_id')
         if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
 
         var manga_name = settings?.name;
         if (!manga_name || typeof manga_name != "string") throw new MalError(`Require name: getMangaInfo({ name: string })`)
 
-        var offset = settings?.offset ?? ''
-        if (offset != '' && isNaN(offset)) throw new MalError(`The "offset" field must be a valid positive number.`)
-        if (offset != '') offset = `&offset=${offset}`
+        var offset = settings?.offset ?? 0
+        await this.#checkParam("getMangaInfo", "offset", offset, 0, null);
 
         var limit = settings?.limit ?? ''
-        if (limit != '' && (isNaN(limit) || limit > 500)) throw new MalError(`The "limit" field must be a valid positive number (<=500).`)
-        if (limit != '') limit = `&limit=${limit}`
+        await this.#checkParam("getMangaInfo", "limit", limit, 1, 100);
 
-        var fields = settings?.fields ?? []
-        if (fields.length > 0) fields = `&fields=${fields.map(field => field).join(',')}`
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getMangaInfo", "manga", "fields", fields);
 
         var nsfw = settings?.nsfw ?? false
         if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
-
-
 
         var editedMangaName = manga_name.split(/[:–—]/)[0].replace(/[^a-zA-Z0-9\s]/g, "").trim()
         if (editedMangaName.split(" ").length > 8) {
             editedMangaName = editedMangaName.split(" ").slice(0, 8).join(" ")
         }
 
-        const url = `https://api.myanimelist.net/v2/manga?q=${encodeURIComponent(editedMangaName)}${offset}${limit}${fields}${nsfw}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        const url = `https://api.myanimelist.net/v2/manga?q=${encodeURIComponent(editedMangaName)}&offset=${offset}&limit=${limit}${fields}${nsfw}`
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getMangaInfo({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
         const data = await this.#request(url, options);
-
         return data;
     }
 
@@ -386,10 +522,23 @@ new MyAnimeList({
         if (!url) throw new MalError(`Require api_url: getMangaInfoByURL({ api_url: string })`)
         if (!url.includes('api.myanimelist.net/v2/manga')) throw new MalError("Invalid URL.");
 
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getMangaInfoByURL({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
@@ -419,10 +568,24 @@ new MyAnimeList({
         }
 
         const url = `https://api.myanimelist.net/v2/manga?q=${encodeURIComponent(editedMangaName)}${fields}${nsfw}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getSpecificMangaInfo({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
@@ -476,10 +639,24 @@ new MyAnimeList({
         if (nsfw === true) { nsfw = `?nsfw=true` } else { nsfw = `?nsfw=false` }
 
         const url = `https://api.myanimelist.net/v2/manga/${manga_id}${nsfw}${fields}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getMangaInfoByID({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
@@ -497,26 +674,37 @@ new MyAnimeList({
         var ranking_type = settings?.type ?? "all"
         if (!available_ranking_type.includes(ranking_type)) throw new MalError(`Please use a valid ranking type: ${available_ranking_type.map(f => f).join(', ')}`);
 
-        var fields = settings?.fields ?? []
-        if (!Array.isArray(fields)) throw new MalError(`The "fields" field must be a list: getMangaRanking({ fields: [array] })`);
-        if (fields.length > 0) fields = `&fields=${fields.map(field => field).join(',')}`
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getMangaRanking", "manga", "fields", fields);
 
         var limit = settings?.limit ?? ''
-        if (limit != '' && (isNaN(limit) || limit > 500)) throw new MalError(`The "limit" field must be a valid positive number (<=500).`);
-        if (limit != '') limit = `&limit=${limit}`
+        await this.#checkParam("getMangaRanking", "limit", limit, 1, 500);
 
         var offset = settings?.offset ?? ''
-        if (offset != '' && isNaN(offset) && limit.toString() != '0') throw new MalError(`The "offset" field must be a valid positive number.`);
-        if (offset != '') offset = `&offset=${offset}`
+        await this.#checkParam("getMangaRanking", "offset", offset, 0, null);
 
         var nsfw = settings?.nsfw ?? false
         if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
 
-        const url = `https://api.myanimelist.net/v2/manga/ranking?ranking_type=${ranking_type}${fields}${limit}${offset}${nsfw}`
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-MAL-CLIENT-ID': this.client_id
+        const url = `https://api.myanimelist.net/v2/manga/ranking?ranking_type=${ranking_type}${fields}&limit=${limit}&offset=${offset}${nsfw}`
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getMangaRanking({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             }
         }
 
@@ -580,10 +768,10 @@ new MyAnimeList({
         else subboard_id = ""
 
         var limit = settings?.limit ?? 10
-        if (isNaN(limit) || limit > 100) throw new MalError(`The "limit" field must be a number: getBoardTopics({ limit: number (must be <= 100) })`);
+        await this.#checkParam("getBoardTopics", "limit", limit, 1, 100);
 
         var offset = settings?.offset ?? 0
-        if (isNaN(offset)) throw new MalError(`The "offset" field must be a number: getBoardTopics({ offset: number })`);
+        await this.#checkParam("getBoardTopics", "offset", offset, 0, null);
 
         var search = settings?.search ?? null
         if (search && typeof (search) != "string") throw new MalError(`The "search" field must be a string: getBoardTopics({ search: string })`);
@@ -649,10 +837,10 @@ new MyAnimeList({
         if (!topicID || isNaN(topicID)) throw new MalError("Please provide the topic ID: getTopicDetails({ topic_id: number })");
 
         var limit = settings?.limit ?? 10
-        if (isNaN(limit) || limit > 100) throw new MalError(`The "limit" field must be a number: getTopicDetails({ limit: number (must be <= 100) })`);
+        await this.#checkParam("getTopicDetails", "limit", limit, 1, 100);
 
         var offset = settings?.offset ?? 0
-        if (isNaN(offset)) throw new MalError(`The "offset" field must be a number: getTopicDetails({ offset: number })`);
+        await this.#checkParam("getTopicDetails", "offset", offset, 0, null);
 
         const url = `https://api.myanimelist.net/v2/forum/topic/${topicID}?limit=${limit}&offset=${offset}`;
         const options = {
@@ -686,8 +874,6 @@ new MyAnimeList({
 
         return data;
     }
-
-    // OAuth2
 
     async generatePKCE() {
         const verifier = await crypto.randomBytes(64).toString('base64')
@@ -760,7 +946,7 @@ new MyAnimeList({
         if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
 
         const refreshToken = settings?.refresh_token ?? null;
-        if (!refreshToken || typeof(refreshToken) != "string") {
+        if (!refreshToken || typeof (refreshToken) != "string") {
             throw new MalError("Please provide the refresh token: refreshToken({ refresh_token: string })");
         }
 
@@ -784,7 +970,375 @@ new MyAnimeList({
         return tokens;
     }
 
-    // Il faut ajouter les fonctions pour utiliser le token
+    async getUserInformation(settings) {
+        const availableFields = ["id", "name", "picture", "gender", "birthday", "location", "joined_at", "anime_statistics", "time_zone", "is_supporter"];
+
+        var token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: getUserInformation({ token: string })`);
+
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getUserInformation", "user", "fields", fields);
+
+        const url = `https://api.myanimelist.net/v2/users/@me${fields}`;
+        const options = {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data;
+    }
+
+    async getUserAnimeList(settings) {
+        const availableStatus = ["watching", "completed", "on_hold", "dropped", "plan_to_watch"];
+        const availableSortType = ["list_score", "list_updated_at", "anime_title", "anime_start_date"];
+
+        var username = settings?.username ?? null
+        if (username && typeof (username) != "string") throw new MalError(`The "username" field must be a string: getUserAnimeList({ username: string })`);
+        if (!username) {
+            username = "@me"
+        }
+
+        var status = settings?.status ?? null;
+        if (status && (typeof (status) != "string" || !availableStatus.includes(status))) throw new MalError(`Please provide a valid status: ${availableStatus.map(e => e).join(', ')}`);
+        if (!status) {
+            status = ""
+        } else {
+            status = `&status=${status}`
+        }
+
+        var sort = settings?.sort ?? null;
+        if (sort && (typeof (sort) != "string" || !availableSortType.includes(sort))) throw new MalError(`Please provide a valid sort type: ${availableSortType.map(e => e).join(', ')}`);
+        if (!sort) {
+            sort = ""
+        } else {
+            sort = `&sort=${sort}`
+        }
+
+        var limit = settings?.limit ?? 10;
+        await this.#checkParam("getUserAnimeList", "limit", limit, 1, 1000);
+
+        var offset = settings?.offset ?? 0;
+        await this.#checkParam("getUserAnimeList", "offset", offset, 0, null);
+
+        var nsfw = settings?.nsfw ?? false
+        if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
+
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getUserAnimeList", "anime", "fields", fields);
+
+        const url = `https://api.myanimelist.net/v2/users/${username}/animelist?limit=${limit}&offset=${offset}${sort}${status}${fields}${nsfw}`
+        var options
+
+        if (username != "@me") {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            var token = settings?.token ?? null;
+            if (!token || typeof (token) != "string") throw new MalError(`When you do not specify the "username" field, you must provide the token of the target user: getUserAnimeList({ token: string })`);
+
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data;
+    }
+
+    async updateUserAnimeList(settings) {
+        const availableStatus = ["watching", "completed", "on_hold", "dropped", "plan_to_watch"];
+
+        const formatDate = (date) => {
+            if (date instanceof Date && !isNaN(date.getTime())) {
+                return date.toISOString().split("T")[0];
+            }
+            return date;
+        }
+
+        const token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: updateUserAnimeList({ token: string })`);
+
+        const anime_id = settings?.id ?? null;
+        if (!anime_id || isNaN(anime_id)) throw new MalError(`Please provide a valid anime id: updateUserAnimeList({ id: number })`);
+
+        const parameters = new URLSearchParams();
+
+        const status = settings?.status ?? null;
+        if (status && (typeof (status) != "string" || !availableStatus.includes(status))) throw new MalError(`Please provide a valid status: ${availableStatus.map(e => e).join(', ')}`);
+        if (status) parameters.append("status", status)
+
+        const is_rewatching = settings?.is_rewatching ?? null
+        if (is_rewatching !== null && typeof (is_rewatching) != "boolean") throw new MalError(`Please provide a valid "is_rewatching" value: updateUserAnimeList({ is_rewatching: boolean })`);
+        if (is_rewatching !== null) parameters.append("is_rewatching", is_rewatching);
+
+        let start_date = settings?.start_date ?? null;
+        if (start_date !== null) {
+            start_date = formatDate(start_date);
+            if (typeof (start_date) != "string" || (start_date !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(start_date))) {
+                throw new MalError(`Please provide a valid "start_date" (YYYY-MM-DD, empty string, or Date instance): updateUserAnimeList({ start_date: string | Date })`);
+            }
+            parameters.append("start_date", start_date);
+        }
+
+        let end_date = settings?.end_date ?? null;
+        if (end_date !== null) {
+            end_date = formatDate(end_date);
+            if (typeof (end_date) != "string" || (end_date !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(end_date))) {
+                throw new MalError(`Please provide a valid "end_date" (YYYY-MM-DD, empty string, or Date instance): updateUserAnimeList({ end_date: string | Date })`);
+            }
+            parameters.append("end_date", end_date);
+        }
+
+        const score = settings?.score ?? null;
+        if (score !== null && (isNaN(score) || score < 0 || score > 10)) throw new MalError(`Please provide a score between 0 and 10: updateUserAnimeList({ score: number })`);
+        if (score !== null) parameters.append("score", score);
+
+        const num_watched_episodes = settings?.num_watched_episodes ?? null;
+        if (num_watched_episodes !== null && (isNaN(num_watched_episodes) || num_watched_episodes < 0)) throw new MalError(`Please provide a valid "num_watched_episodes" value: updateUserAnimeList({ num_watched_episodes: number })`);
+        if (num_watched_episodes !== null) parameters.append("num_watched_episodes", num_watched_episodes);
+
+        const priority = settings?.priority ?? null;
+        if (priority !== null && (isNaN(priority) || priority < 0 || priority > 2)) throw new MalError(`Please provide a "priority" value between 0 and 2: updateUserAnimeList({ priority: number })`);
+        if (priority !== null) parameters.append("priority", priority);
+
+        const num_times_rewatched = settings?.num_times_rewatched ?? null;
+        if (num_times_rewatched !== null && (isNaN(num_times_rewatched) || num_times_rewatched < 0)) throw new MalError(`Please provide a valid "num_times_rewatched" value: updateUserAnimeList({ num_times_rewatched: number })`);
+        if (num_times_rewatched !== null) parameters.append("num_times_rewatched", num_times_rewatched);
+
+        const rewatch_value = settings?.rewatch_value ?? null;
+        if (rewatch_value !== null && (isNaN(rewatch_value) || rewatch_value < 0 || rewatch_value > 5)) throw new MalError(`Please provide a "rewatch_value" value between 0 and 5: updateUserAnimeList({ rewatch_value: number })`);
+        if (rewatch_value !== null) parameters.append("rewatch_value", rewatch_value);
+
+        let tags = settings?.tags ?? null;
+        if (tags && (!Array.isArray(tags))) throw new MalError(`"tags" must be an array: updateUserAnimeList({ tags: array })`);
+        if (tags) {
+            parameters.append("tags", tags.join(','));
+        }
+
+        const comments = settings?.comments ?? null;
+        if (comments !== null && typeof (comments) != "string") throw new MalError(`"comments" must be a string: updateUserAnimeList({ comments: string })`);
+        if (comments !== null) parameters.append("comments", comments);
+
+        const url = `https://api.myanimelist.net/v2/anime/${anime_id}/my_list_status`
+        const options = {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: parameters.toString()
+        }
+
+        await this.#request(url, options);
+        return { message: `Anime (${anime_id}) updated.` }
+    }
+
+    async deleteUserAnimeList(settings) {
+        const token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: updateUserAnimeList({ token: string })`);
+
+        const anime_id = settings?.id ?? null;
+        if (!anime_id || isNaN(anime_id)) throw new MalError(`Please provide a valid anime id: updateUserAnimeList({ id: number })`);
+
+        const url = `https://api.myanimelist.net/v2/anime/${anime_id}/my_list_status`;
+        const options = {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }
+
+        await this.#request(url, options);
+        return { message: `Anime (${anime_id}) deleted.` }
+    }
+
+    async getSuggestedAnime(settings) {
+        const token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: getSuggestedAnime({ token: string })`);
+
+        const limit = settings?.limit ?? 10;
+        this.#checkParam("getSuggestedAnime", "limit", limit, 1, 100);
+
+        const offset = settings?.offset ?? 0;
+        this.#checkParam("getSuggestedAnime", "offset", offset, 0, null);
+
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getSuggestedAnime", "anime", "fields", fields);
+
+        var nsfw = settings?.nsfw ?? false
+        if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
+
+        const url = `https://api.myanimelist.net/v2/anime/suggestions?limit=${limit}&offset=${offset}${fields}${nsfw}`;
+        const options = {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data
+    }
+
+    async getUserMangaList(settings) {
+        const availableStatus = ["reading", "completed", "on_hold", "dropped", "plan_to_read"];
+        const availableSortType = ["list_score", "list_updated_at", "manga_title", "manga_start_date"];
+
+        var username = settings?.username ?? null
+        if (username && typeof (username) != "string") throw new MalError(`The "username" field must be a string: getUserMangaList({ username: string })`);
+        if (!username) {
+            username = "@me"
+        }
+
+        var status = settings?.status ?? null;
+        if (status && (typeof (status) != "string" || !availableStatus.includes(status))) throw new MalError(`Please provide a valid status: ${availableStatus.map(e => e).join(', ')}`);
+        if (!status) {
+            status = ""
+        } else {
+            status = `&status=${status}`
+        }
+
+        var sort = settings?.sort ?? null;
+        if (sort && (typeof (sort) != "string" || !availableSortType.includes(sort))) throw new MalError(`Please provide a valid sort type: ${availableSortType.map(e => e).join(', ')}`);
+        if (!sort) {
+            sort = ""
+        } else {
+            sort = `&sort=${sort}`
+        }
+
+        var fields = settings?.fields ?? null;
+        fields = await this.#checkFields("getUserMangaList", "manga", "fields", fields);
+
+        var limit = settings?.limit ?? 10;
+        await this.#checkParam("getUserMangaList", "limit", limit, 1, 1000);
+
+        var offset = settings?.offset ?? 0;
+        await this.#checkParam("getUserMangaList", "offset", offset, 0, null);
+
+        var nsfw = settings?.nsfw ?? false
+        if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
+
+        const url = `https://api.myanimelist.net/v2/users/${username}/mangalist?limit=${limit}&offset=${offset}${sort}${status}${fields}${nsfw}`;
+        var options
+
+        if (username != "@me") {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            var token = settings?.token ?? null;
+            if (!token || typeof (token) != "string") throw new MalError(`When you do not specify the "username" field, you must provide the token of the target user: getUserMangaList({ token: string })`);
+
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data;
+    }
+
+    async updateUserMangaList(settings) {
+        const availableStatus = ["reading", "completed", "on_hold", "dropped", "plan_to_read"];
+
+        const token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: updateUserMangaList({ token: string })`);
+
+        const manga_id = settings?.id ?? null;
+        if (!manga_id || isNaN(manga_id)) throw new MalError(`Please provide a valid manga id: updateUserMangaList({ id: number })`);
+
+        const parameters = new URLSearchParams();
+
+        const status = settings?.status ?? null;
+        if (status && (typeof (status) != "string" || !availableStatus.includes(status))) throw new MalError(`Please provide a valid status: ${availableStatus.map(e => e).join(', ')}`);
+        if (status) parameters.append("status", status)
+
+        const is_rereading = settings?.is_rereading ?? null
+        if (is_rereading !== null && typeof (is_rereading) != "boolean") throw new MalError(`Please provide a valid "is_rereading" value: updateUserMangaList({ is_rereading: boolean })`);
+        if (is_rereading !== null) parameters.append("is_rereading", is_rereading);
+
+        const score = settings?.score ?? null;
+        if (score !== null && (isNaN(score) || score < 0 || score > 10)) throw new MalError(`Please provide a score between 0 and 10: updateUserMangaList({ score: number })`);
+        if (score !== null) parameters.append("score", score);
+
+        const num_volumes_read = settings?.num_volumes_read ?? null;
+        if (num_volumes_read !== null && (isNaN(num_volumes_read) || num_volumes_read < 0)) throw new MalError(`Please provide a valid "num_volumes_read" value: updateUserMangaList({ num_volumes_read: number })`);
+        if (num_volumes_read !== null) parameters.append("num_volumes_read", num_volumes_read);
+
+        const num_chapters_read = settings?.num_chapters_read ?? null;
+        if (num_chapters_read !== null && (isNaN(num_chapters_read) || num_chapters_read < 0)) throw new MalError(`Please provide a valid "num_chapters_read" value: updateUserMangaList({ num_chapters_read: number })`);
+        if (num_chapters_read !== null) parameters.append("num_chapters_read", num_chapters_read);
+
+        const priority = settings?.priority ?? null;
+        if (priority !== null && (isNaN(priority) || priority < 0 || priority > 2)) throw new MalError(`Please provide a "priority" value between 0 and 2: updateUserMangaList({ priority: number })`);
+        if (priority !== null) parameters.append("priority", priority);
+
+        const num_times_reread = settings?.num_times_reread ?? null;
+        if (num_times_reread !== null && (isNaN(num_times_reread) || num_times_reread < 0)) throw new MalError(`Please provide a valid "num_times_reread" value: updateUserMangaList({ num_times_reread: number })`);
+        if (num_times_reread !== null) parameters.append("num_times_reread", num_times_reread);
+
+        const reread_value = settings?.reread_value ?? null;
+        if (reread_value !== null && (isNaN(reread_value) || reread_value < 0 || reread_value > 5)) throw new MalError(`Please provide a "reread_value" value between 0 and 5: updateUserMangaList({ reread_value: number })`);
+        if (reread_value !== null) parameters.append("reread_value", reread_value);
+
+        let tags = settings?.tags ?? null;
+        if (tags && (!Array.isArray(tags))) throw new MalError(`"tags" must be an array: updateUserMangaList({ tags: array })`);
+        if (tags) {
+            parameters.append("tags", tags.join(','));
+        }
+
+        const comments = settings?.comments ?? null;
+        if (comments !== null && typeof (comments) != "string") throw new MalError(`"comments" must be a string: updateUserMangaList({ comments: string })`);
+        if (comments !== null) parameters.append("comments", comments);
+
+        const url = `https://api.myanimelist.net/v2/manga/${manga_id}/my_list_status`
+        const options = {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: parameters.toString()
+        }
+
+        await this.#request(url, options);
+        return { message: `Manga (${manga_id}) updated.` }
+    }
+
+    async deleteUserMangaList(settings) {
+        const token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: deleteUserMangaList({ token: string })`);
+
+        const manga_id = settings?.id ?? null;
+        if (!manga_id || isNaN(manga_id)) throw new MalError(`Please provide a valid manga id: deleteUserMangaList({ manga_id: number })`);
+
+        const url = `https://api.myanimelist.net/v2/manga/${manga_id}/my_list_status`;
+        const options = {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }
+
+        await this.#request(url, options);
+        return { message: `Manga (${manga_id}) deleted.` }
+    }
 }
 
 module.exports = {
