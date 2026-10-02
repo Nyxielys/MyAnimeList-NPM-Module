@@ -474,7 +474,7 @@ new MyAnimeList({
         var offset = settings?.offset ?? 0
         await this.#checkParam("getMangaInfo", "offset", offset, 0, null);
 
-        var limit = settings?.limit ?? ''
+        var limit = settings?.limit ?? 10
         await this.#checkParam("getMangaInfo", "limit", limit, 1, 100);
 
         var fields = settings?.fields ?? null;

@@ -1,6 +1,6 @@
 export interface MALOptions {
     client_id?:string;
-};
+}
 
 export type CommonField =
     | "id"
@@ -119,26 +119,26 @@ export interface AnimeInfoOptions {
     limit?: number;
     fields?: AnimeField[];
     nsfw?: boolean;
-};
+}
 
 export interface AnimeInfoURLOptions {
     api_url: string;
     token?: string;
-};
+}
 
 export interface SpecificAnimeInfoOptions {
     name: string;
     fields?: AnimeField[];
     nsfw?: boolean;
     token?: string;
-};
+}
 
 export interface AnimeInfoByIDOptions {
     id: number;
     token?: string;
     fields?: AnimeField[];
     nsfw?: boolean;
-};
+}
 
 export interface AnimeRankingOptions {
     type?: AnimeRankingType;
@@ -147,7 +147,7 @@ export interface AnimeRankingOptions {
     limit?: number;
     offset?: number;
     nsfw?: boolean;
-};
+}
 
 export interface SeasonalAnimeOptions {
     token?: string;
@@ -157,7 +157,7 @@ export interface SeasonalAnimeOptions {
     limit?: number;
     offset?: number;
     nsfw?: boolean;
-};
+}
 
 export interface MangaInfoOptions {
     name: string;
@@ -166,26 +166,26 @@ export interface MangaInfoOptions {
     limit?: number;
     fields?: MangaField[];
     nsfw?: boolean;
-};
+}
 
 export interface MangaInfoURLOptions {
     api_url: string;
     token?: string;
-};
+}
 
 export interface SpecificMangaInfoOptions {
     name: string;
     token?: string;
     fields?: MangaField[];
     nsfw?: boolean;
-};
+}
 
 export interface MangaInfoByIDOptions {
     id: number;
     token?: string;
     fields?: MangaField[];
     nsfw?: boolean;
-};
+}
 
 export interface MangaRankingOptions {
     type?: MangaRankingType;
@@ -194,11 +194,11 @@ export interface MangaRankingOptions {
     limit?: number;
     offset?: number;
     nsfw?: boolean;
-};
+}
 
 export interface AllBoardsOptions {
     categories?: BoardCategory[];
-};
+}
 
 export interface BoardTopicsOptions {
     search?: string;
@@ -208,46 +208,46 @@ export interface BoardTopicsOptions {
     topic_username?: string;
     limit?: number;
     offset?: number;
-};
+}
 
 export interface BoardTopicsURLOptions {
     api_url: string;
-};
+}
 
 export interface TopicDetailsOptions {
     topic_id: number;
     limit?: number;
     offset?: number;
-};
+}
 
 export interface TopicDetailsURLOptions {
     api_url: string;
-};
+}
 
 export interface PkceCodesReturn {
     verifier: string;
     challenge: string;
-};
+}
 
 export interface GenerateAuthURLOptions {
     challenge: string;
     redirect_uri: string;
-};
+}
 
 export interface AuthorizeOptions {
     code: string;
     verifier: string;
     redirect_uri: string;
-};
+}
 
 export interface RefreshTokenOptions {
     refresh_token: string;
-};
+}
 
 export interface GetUserInformationOptions {
     token: string;
     fields?: UserSpecificField[];
-};
+}
 
 export interface GetUserAnimeListOptions {
     username?: string;
@@ -258,7 +258,7 @@ export interface GetUserAnimeListOptions {
     offset?: number;
     nsfw?: boolean;
     fields?: AnimeField[];
-};
+}
 
 export interface UpdateUserAnimeListOptions {
     token: string;
@@ -274,12 +274,12 @@ export interface UpdateUserAnimeListOptions {
     rewatch_value?: number;
     tags?: string[];
     comments?: string;
-};
+}
 
 export interface DeleteUserAnimeListOptions {
     token: string;
     anime_id: number;
-};
+}
 
 export interface GetSuggestedAnimeOptions {
     token: string;
@@ -287,7 +287,7 @@ export interface GetSuggestedAnimeOptions {
     offset?: number;
     fields?: AnimeField[];
     nsfw?: boolean;
-};
+}
 
 export interface GetUserMangaListOptions {
     username?: string;
@@ -298,7 +298,7 @@ export interface GetUserMangaListOptions {
     limit?: number;
     offset?: number;
     nsfw: boolean;
-};
+}
 
 export interface UpdateUserMangaListOptions {
     token: string;
@@ -313,19 +313,19 @@ export interface UpdateUserMangaListOptions {
     reread_value?: number;
     tags?: string[];
     comments?: string;
-};
+}
 
 export interface DeleteUserMangaListOptions {
     token: string;
     manga_id: string;
-};
+}
 
 export class MalError extends Error {
     status: number | null;
     details: any;
 
     constructor(message: string, status?: number | null, details?: any);
-};
+}
 
 export class MyAnimeList {
     constructor(options: MALOptions);
