@@ -1337,7 +1337,7 @@ new MyAnimeList({
         }
 
         await this.#request(url, options);
-        return { message: `Manga (${manga_id}) deleted.` }
+        return { message: `deleted` }
     }
 }
 
