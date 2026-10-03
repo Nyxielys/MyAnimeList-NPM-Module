@@ -677,10 +677,10 @@ new MyAnimeList({
         var fields = settings?.fields ?? null;
         fields = await this.#checkFields("getMangaRanking", "manga", "fields", fields);
 
-        var limit = settings?.limit ?? ''
+        var limit = settings?.limit ?? 20
         await this.#checkParam("getMangaRanking", "limit", limit, 1, 500);
 
-        var offset = settings?.offset ?? ''
+        var offset = settings?.offset ?? 0
         await this.#checkParam("getMangaRanking", "offset", offset, 0, null);
 
         var nsfw = settings?.nsfw ?? false
