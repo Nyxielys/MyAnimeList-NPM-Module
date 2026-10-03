@@ -1140,7 +1140,7 @@ new MyAnimeList({
         }
 
         await this.#request(url, options);
-        return { message: `Anime (${anime_id}) updated.` }
+        return { message: `updated` }
     }
 
     async deleteUserAnimeList(settings) {
@@ -1159,7 +1159,7 @@ new MyAnimeList({
         }
 
         await this.#request(url, options);
-        return { message: `Anime (${anime_id}) deleted.` }
+        return { message: `deleted` }
     }
 
     async getSuggestedAnime(settings) {
@@ -1318,7 +1318,7 @@ new MyAnimeList({
         }
 
         await this.#request(url, options);
-        return { message: `Manga (${manga_id}) updated.` }
+        return { message: `updated` }
     }
 
     async deleteUserMangaList(settings) {

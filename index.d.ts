@@ -254,10 +254,10 @@ export interface GetUserAnimeListOptions {
     token?: string;
     status?: AnimeListStatus;
     sort?: AnimeListSort;
+    fields?: AnimeField[];
     limit?: number;
     offset?: number;
     nsfw?: boolean;
-    fields?: AnimeField[];
 }
 
 export interface UpdateUserAnimeListOptions {
