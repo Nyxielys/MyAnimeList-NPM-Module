@@ -1,6 +1,6 @@
 export interface MALOptions {
     client_id?:string;
-    token?: string;
+    client_secret?: string;
 }
 
 export type CommonField =
