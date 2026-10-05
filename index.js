@@ -6,6 +6,7 @@ const availableGlobalFields = ["id", "title", "main_picture", "alternative_title
 const availableAnimeFields = ["num_episodes", "start_season", "broadcast", "source", "average_episode_duration", "rating", "studios"];
 const availableMangaFields = ["num_volumes", "num_chapters", "authors"];
 const availableUserProfileFields = ["id", "name", "picture", "gender", "birthday", "location", "joined_at", "anime_statistics", "time_zone", "is_supporter"];
+const getUserMangaAnimeListField = ["list_status"];
 
 class MyAnimeList {
     constructor(datas) {
@@ -113,6 +114,10 @@ new MyAnimeList({
             availableFields = availableGlobalFields.concat(availableMangaFields);
         } else if (type === "user") {
             availableFields = availableUserProfileFields;
+        } else if (type === "animelist") {
+            availableFields = availableGlobalFields.concat(availableAnimeFields).concat(getUserMangaAnimeListField);
+        } else if (type === "mangalist") {
+            availableFields = availableGlobalFields.concat(availableMangaFields).concat(getUserMangaAnimeListField);
         }
 
         if (tab !== null && tab.length > 0) {
@@ -971,7 +976,8 @@ new MyAnimeList({
     }
 
     async getUserInformation(settings) {
-        const availableFields = ["id", "name", "picture", "gender", "birthday", "location", "joined_at", "anime_statistics", "time_zone", "is_supporter"];
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
 
         var token = settings?.token ?? null;
         if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: getUserInformation({ token: string })`);
@@ -992,6 +998,9 @@ new MyAnimeList({
     }
 
     async getUserAnimeList(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
         const availableStatus = ["watching", "completed", "on_hold", "dropped", "plan_to_watch"];
         const availableSortType = ["list_score", "list_updated_at", "anime_title", "anime_start_date"];
 
@@ -1027,7 +1036,7 @@ new MyAnimeList({
         if (nsfw === true) { nsfw = `&nsfw=true` } else { nsfw = `&nsfw=false` }
 
         var fields = settings?.fields ?? null;
-        fields = await this.#checkFields("getUserAnimeList", "anime", "fields", fields);
+        fields = await this.#checkFields("getUserAnimeList", "animelist", "fields", fields);
 
         const url = `https://api.myanimelist.net/v2/users/${username}/animelist?limit=${limit}&offset=${offset}${sort}${status}${fields}${nsfw}`
         var options
@@ -1055,7 +1064,42 @@ new MyAnimeList({
         return data;
     }
 
+    async getUserAnimeListByURL(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
+        var url = settings?.api_url
+        if (!url) throw new MalError("Require api_url: getUserAnimeListByURL({ api_url: string })");
+        if (!url.includes('api.myanimelist.net/v2/users/')) throw new MalError("Invalid URL.");
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getUserAnimeListByURL({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data;
+    }
+
     async updateUserAnimeList(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
         const availableStatus = ["watching", "completed", "on_hold", "dropped", "plan_to_watch"];
 
         const formatDate = (date) => {
@@ -1144,6 +1188,9 @@ new MyAnimeList({
     }
 
     async deleteUserAnimeList(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
         const token = settings?.token ?? null;
         if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: updateUserAnimeList({ token: string })`);
 
@@ -1163,6 +1210,9 @@ new MyAnimeList({
     }
 
     async getSuggestedAnime(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
         const token = settings?.token ?? null;
         if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: getSuggestedAnime({ token: string })`);
 
@@ -1188,6 +1238,28 @@ new MyAnimeList({
 
         const data = await this.#request(url, options);
         return data
+    }
+
+    async getSuggestedAnimeByURL(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
+        var url = settings?.api_url
+        if (!url) throw new MalError("Require api_url: getSuggestedAnimeByURL({ api_url: string })");
+        if (!url.includes('api.myanimelist.net/v2/anime/suggestions')) throw new MalError("Invalid URL.");
+
+        var token = settings?.token ?? null;
+        if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: getSuggestedAnimeByURL({ token: string })`);
+
+        var options = {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data;
     }
 
     async getUserMangaList(settings) {
@@ -1217,7 +1289,7 @@ new MyAnimeList({
         }
 
         var fields = settings?.fields ?? null;
-        fields = await this.#checkFields("getUserMangaList", "manga", "fields", fields);
+        fields = await this.#checkFields("getUserMangaList", "mangalist", "fields", fields);
 
         var limit = settings?.limit ?? 10;
         await this.#checkParam("getUserMangaList", "limit", limit, 1, 1000);
@@ -1242,6 +1314,38 @@ new MyAnimeList({
             var token = settings?.token ?? null;
             if (!token || typeof (token) != "string") throw new MalError(`When you do not specify the "username" field, you must provide the token of the target user: getUserMangaList({ token: string })`);
 
+            options = {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        }
+
+        const data = await this.#request(url, options);
+        return data;
+    }
+
+    async getUserMangaListByURL(settings) {
+        const hasForgetParam = await this.#checkIfHasParams('only_client_id')
+        if (hasForgetParam.error) throw new MalError(hasForgetParam.error);
+
+        var url = settings?.api_url
+        if (!url) throw new MalError("Require api_url: getUserMangaList({ api_url: string })");
+        if (!url.includes('api.myanimelist.net/v2/users/')) throw new MalError("Invalid URL.");
+
+        var token = settings?.token ?? null;
+        if (token && typeof (token) != "string") throw new MalError(`Please provide a valid token: getUserMangaList({ token: string })`);
+
+        var options
+        if (!token) {
+            options = {
+                method: 'GET',
+                headers: {
+                    'X-MAL-CLIENT-ID': this.client_id
+                }
+            }
+        } else {
             options = {
                 method: 'GET',
                 headers: {

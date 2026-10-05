@@ -1,5 +1,6 @@
 export interface MALOptions {
     client_id?:string;
+    token?: string;
 }
 
 export type CommonField =
@@ -111,6 +112,8 @@ export type BoardCategory =
 
 export type AnimeField = CommonField | AnimeSpecificField;
 export type MangaField = CommonField | MangaSpecificField;
+export type GetAnimeListField = AnimeField | "list_status";
+export type GetMangaListField = MangaField | "list_status";
 
 export interface AnimeInfoOptions {
     name: string;
@@ -254,10 +257,15 @@ export interface GetUserAnimeListOptions {
     token?: string;
     status?: AnimeListStatus;
     sort?: AnimeListSort;
-    fields?: AnimeField[];
+    fields?: GetAnimeListField[];
     limit?: number;
     offset?: number;
     nsfw?: boolean;
+}
+
+export interface GetUserAnimeListURLOptions {
+    api_url: string;
+    token?: string;
 }
 
 export interface UpdateUserAnimeListOptions {
@@ -289,15 +297,25 @@ export interface GetSuggestedAnimeOptions {
     nsfw?: boolean;
 }
 
+export interface GetSuggestedAnimeURLOptions {
+    api_url: string;
+    token: string;
+}
+
 export interface GetUserMangaListOptions {
     username?: string;
     token?: string;
     status?: MangaListStatus;
     sort?: MangaListSort;
-    fields?: MangaField[];
+    fields?: GetMangaListField[];
     limit?: number;
     offset?: number;
     nsfw: boolean;
+}
+
+export interface GetUserMangaListURLOptions {
+    api_url: string;
+    token?: string;
 }
 
 export interface UpdateUserMangaListOptions {
@@ -374,13 +392,19 @@ export class MyAnimeList {
 
     getUserAnimeList(options: GetUserAnimeListOptions): Promise<any>;
 
+    getUserAnimeListByURL(options: GetUserAnimeListURLOptions): Promise<any>;
+
     updateUserAnimeList(options: UpdateUserAnimeListOptions): Promise<any>;
 
     deleteUserAnimeList(options: DeleteUserAnimeListOptions): Promise<any>;
 
     getSuggestedAnime(options: GetSuggestedAnimeOptions): Promise<any>;
 
+    getSuggestedAnimeByURL(options: GetSuggestedAnimeURLOptions): Promise<any>;
+
     getUserMangaList(options: GetUserMangaListOptions): Promise<any>;
+
+    getUserMangaListByURL(options: GetUserMangaListURLOptions): Promise<any>;
 
     updateUserMangaList(options: UpdateUserMangaListOptions): Promise<any>;
 
