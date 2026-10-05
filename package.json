@@ -1,6 +1,6 @@
 {
   "name": "myanimelist-module",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "",
   "main": "index.js",
   "types": "index.d.ts",
@@ -23,19 +23,19 @@
     "client"
   ],
   "author": {
-    "name": "Nyxielys",
+    "name": "SimplyNyx",
     "email": "dev.nyxielys@gmail.com",
-    "url": "https://github.com/Nyxielys"
+    "url": "https://github.com/SimplyNyx"
   },
   "license": "MIT",
   "type": "commonjs",
 
   "homepage": "https://simplynyxx.gitbook.io/myanimelist-module",
   "bugs": {
-    "url": "https://github.com/Nyxielys/MyAnimeList-NPM-Module/issues"
+    "url": "https://github.com/SimplyNyx/MyAnimeList-NPM-Module/issues"
   },
   "repository": {
     "type": "github",
-    "url": "https://github.com/Nyxielys/MyAnimeList-NPM-Module"
+    "url": "https://github.com/SimplyNyx/MyAnimeList-NPM-Module"
   }
 }
