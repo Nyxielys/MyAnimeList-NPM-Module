@@ -32,10 +32,10 @@
 
   "homepage": "https://simplynyxx.gitbook.io/myanimelist-module",
   "bugs": {
-    "url": "https://github.com/SimplyNyx/MyAnimeList-NPM-Module/issues"
+    "url": "https://github.com/NyxxLabs/MyAnimeList-NPM-Module/issues"
   },
   "repository": {
     "type": "github",
-    "url": "https://github.com/SimplyNyx/MyAnimeList-NPM-Module"
+    "url": "https://github.com/NyxxLabs/MyAnimeList-NPM-Module"
   }
 }
