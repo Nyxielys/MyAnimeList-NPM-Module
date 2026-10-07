@@ -104,7 +104,7 @@ new MyAnimeList({
         }
     }
 
-    async #checkFields(funct, type, parameter, tab) {
+    async #checkFields(funct, type, parameter, tab, isFirst) {
         if (!Array.isArray(tab) && tab !== null) throw new MalError(`The "fields" field must be an array: ${funct}({ fields: array })`);
 
         let availableFields;
@@ -127,7 +127,11 @@ new MyAnimeList({
                 }
             }
 
-            tab = `&${parameter}=${tab.join(',')}`
+            if (!(isFirst ?? false)) {
+                tab = `&${parameter}=${tab.join(',')}`
+            } else {
+                tab = `?${parameter}=${tab.join(',')}`
+            }
         } else {
             tab = ''
         }
@@ -983,7 +987,7 @@ new MyAnimeList({
         if (!token || typeof (token) != "string") throw new MalError(`Please provide a valid token: getUserInformation({ token: string })`);
 
         var fields = settings?.fields ?? null;
-        fields = await this.#checkFields("getUserInformation", "user", "fields", fields);
+        fields = await this.#checkFields("getUserInformation", "user", "fields", fields, true);
 
         const url = `https://api.myanimelist.net/v2/users/@me${fields}`;
         const options = {
